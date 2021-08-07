@@ -1,119 +1,87 @@
 const frameRate = 1000 / 60
-
 let timeInfo
+let wallList = []
 
-class Ball {
-	static type = 'BALL'
+
+let v = new Vector({x1:2, 
+	                y1:2, 
+	                x:11, 
+	                y:0})
+let vn = new Vector({x1: 0,
+					 y1: 0,
+					 x: v.normVector[0],
+					 y: v.normVector[1]})
+
+let a = new Vector({x1:4, 
+	                y1:6, 
+	                x:4, 
+	                y:-4})	                
+
+console.log(reflectByNormal(a, v))
+
+function between(x, a, b) {
+	if (x >= a && x <= b) {
+		return true
+	}
+	return false
+}
+
+function isCollide(rect1, rect2) {
+	if (between(rect1.x, rect2.x, rect2.x+rect2.w) && 
+		between(rect1.y, rect2.y, rect2.y+rect2.h)) {
+		return true
+	}
+	if (between(rect1.x+rect1.w, rect2.x, rect2.x+rect2.w) &&
+		between(rect1.y, rect2.y, rect2.y+rect2.h)) {
+		return true
+	}
+	if (between(rect1.x, rect2.x, rect2.x+rect2.w) &&
+		between(rect1.y+rect1.h, rect2.y, rect2.y+rect2.h)) {
+		return true
+	}
+	if (between(rect1.x+rect1.w, rect2.x, rect2.x+rect2.w) &&
+		between(rect1.y+rect1.h, rect2.y, rect2.y+rect2.h)) {
+		return true
+	}
+	if (between(rect1.y, rect2.y, rect2.y+rect2.h) && 
+		rect1.x < rect2.x && rect1.x+rect1.w > rect2.x){
+		return true
+	}
+	if (between(rect1.x, rect2.x, rect2.x+rect2.w) && 
+		rect1.y > rect2.y && rect1.y+rect1.h < rect2.y){
+		return true
+	}
+
+	return false
+}
+
+class Wall extends Vector {
 
 	constructor(options) {
+		super(options)
 		this.color = options.color
-		this.cords = options.cords
-		this.rotate = 0
+		this.name = options.name
 
-		this.V = [0, 1.5]
-		this.a = [0, 0]
-		
-		this.g = -.5/70
-		this.wind = 0
-		this.bounce = .5
+		this.angle = options.angle
+		this.h = 15
 
-		this.maxForceDistance = 100
-		this.minForceDistance = 550
-		this.clickForce = 1.5
+		this.xFact = this.x1
+		this.yFact = this.y1 + this.h
 
-		this.timeScale = 1
+		this.obj = document.getElementById(this.name)
 	}
 
 	init() {
-		timeInfo = document.getElementById('textInfo')
-		window.addEventListener('wheel', e => {
-			this.timeScale = Math.max(0, Math.min(3, this.timeScale - Math.sign(e.deltaY)*.1))
-		})
-
-		this.obj = document.getElementById('ball')
-
-		this.radius = 32
-		console.log(this.obj)
-
-		this.objParSize = [this.obj.parentElement.offsetWidth, this.obj.parentElement.offsetHeight]
-
-		this.obj.style.display = 'block'
-		this.applyCoords()
-
-		this.obj.parentElement.addEventListener('click', (ev) => {
-			let x = ev.clientX - this.cords[0] - this.radius
-			let y = this.objParSize[1] - ev.clientY - this.cords[1] - this.radius
-
-			let l = Math.sqrt(x*x + y*y)
-			if (l < this.minForceDistance) {
-				let curForce = Math.min(this.maxForceDistance / l, 1)
-
-				// Normolising vecto of force
-				x /= l
-				y /= l
-
-				this.V[0] += -x*curForce*this.clickForce
-				this.V[1] += -y*curForce*this.clickForce
-			}
-
-			// this.V[0] += this.clickForce*curForce
-		})
-	}
-
-	applyCoords() {
-		this.wind = -this.V[0]/5000
-		if (this.wind > -0.00001 && this.wind < 0 ||
-			this.wind < 0.00001 && this.wind > 0) {
-			this.wind = 0
-			this.V[0] = 0
-		}
-
-		this.rotate += this.V[0]*12*this.timeScale
-		this.rotate %= 360
-		this.obj.style.setProperty('--transform-rotate', this.rotate + 'deg')
-
-		// Bottom bounce
-		if (this.cords[1] <= 0) {
-			this.V[1] *= -this.bounce
-			this.cords[1] = 0
-		}
-		// Top bounce
-		if (this.cords[1] >= this.objParSize[1] - 2*this.radius) {
-			this.V[1] *= -1
-			this.cords[1] = this.objParSize[1] - 2*this.radius
-		}
-		// Right bounce
-		if (this.cords[0] >= this.objParSize[0] - 2*this.radius) {
-			this.V[0] *= -this.bounce
-			this.cords[0] = this.objParSize[0] - 2*this.radius
-		}
-		// Left bounce
-		if (this.cords[0] <= 0) {
-			this.V[0] *= -this.bounce
-			this.cords[0] = 0
-		}
-
-
-		// Reset cords
-		this.obj.style.left = this.cords[0] + 'px'
-		this.obj.style.bottom = this.cords[1] + 'px'
-	}
-
-	tick() {
-		timeInfo.innerText = Math.round(this.timeScale * 100)/100
-
-		let newFrameRate = frameRate*this.timeScale
-
-		// X
-		this.cords[0] += this.V[0]*newFrameRate + (this.a[0]+this.wind)*Math.pow(newFrameRate, 2)/2
-		this.V[0] += (this.a[0]+this.wind)*newFrameRate
+		this.obj.style.setProperty('--left', this.x1+'px')
+		this.obj.style.setProperty('--bottom', this.y1+'px')
 		
-		// Y
-		this.cords[1] += this.V[1]*newFrameRate + (this.a[1]+this.g)*Math.pow(newFrameRate, 2)/2
-		this.V[1] += (this.a[1]+this.g)*newFrameRate
+		this.obj.style.setProperty('--width', this.l+'px')
 
-		this.applyCoords()
+		this.obj.style.setProperty('--bgColor', this.color)
+
+		this.obj.style.setProperty('--rotate', this.angle + 'grad')
 	}
+
 }
 
 window.addEventListener('load', () => {
@@ -125,7 +93,21 @@ window.addEventListener('load', () => {
 			cords: [400, 500],
 			mass: 2
 		})
+
+		let wall1 = new Wall({
+			color: 'green',
+			x1: 270,
+			y1: 300,
+			x: 200,
+			y: 100,
+			angle: 0,
+			name: 'wall1'
+		})
+
 		ball.init()
+
+		wallList.push(wall1)
+		// wall1.init()
 
 		let schetchick = setInterval(() => {
 			ball.tick()

@@ -39,6 +39,28 @@ body {
 	transform: rotate(45deg);
 }
 
+.wall {
+	--left:  0px;
+	--bottom: 0px;
+    
+    --width: 0px;
+
+    --bgColor: black;
+
+    --rotate: 0grad;
+
+    position: absolute;
+    bottom: var(--bottom);
+    left: var(--left);
+
+    width: var(--width);
+    height: 15px;
+
+    background-color: var(--bgColor);
+
+    transform: rotate(var(--rotate));
+}
+
 #textInfo {
 	position: absolute;
 	bottom: .5em;
